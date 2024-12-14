@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
 from .pidog import Pidog
 from .walk import Walk
 from .trot import Trot
 from math import sin
 
-# ActionDict: - > angles_dict
+
 class ActionDict(dict):
 
     def __init__(self, *args, **kwargs):
@@ -31,7 +30,8 @@ class ActionDict(dict):
         y = 95
         return [
             Pidog.legs_angle_calculation(
-                [[x, y], [x, y], [x+20, y-5], [x+20, y-5]]),
+                [[x, y], [x, y], [x + 20, y - 5], [x + 20, y - 5]]
+            ),
         ], 'legs'
 
     # 坐 sit
@@ -44,9 +44,7 @@ class ActionDict(dict):
     # 趴 lie
     @property
     def lie(self):
-        return [
-            [45, -45, -45, 45, 45, -45, -45, 45]
-        ], 'legs'
+        return [[45, -45, -45, 45, 45, -45, -45, 45]], 'legs'
 
     # 伸腿趴 lie_with_hands_out
     @property
@@ -117,7 +115,7 @@ class ActionDict(dict):
     def push_up(self):
         return [
             [90, -30, -90, 30, 80, 70, -80, -70],
-            [45, 35, -45, -35, 80, 70, -80, -70]
+            [45, 35, -45, -35, 80, 70, -80, -70],
         ], 'legs'
 
     # 打瞌睡 doze_off
@@ -129,25 +127,25 @@ class ActionDict(dict):
         anl_b = 0
         angs = []
         t = 4
-        for i in range(0, am+1, 1):  # up
+        for i in range(0, am + 1, 1):  # up
             anl_f = start + i
             anl_b = 45 - i
-            angs += [[45, anl_f, -45, -anl_f, 45, -anl_b, -45, anl_b]]*t
+            angs += [[45, anl_f, -45, -anl_f, 45, -anl_b, -45, anl_b]] * t
             # print(1, anl_b)
         for _ in range(4):  # stop
             anl_f = start + am
             anl_b = 45 - am
-            angs += [[45, anl_f, -45, -anl_f, 45, -anl_b, -45, anl_b]]*t
+            angs += [[45, anl_f, -45, -anl_f, 45, -anl_b, -45, anl_b]] * t
             # print(2, anl_b)
         for i in range(am, -1, -1):  # down
             anl_f = start + i
             anl_b = 45 - i
-            angs += [[45, anl_f, -45, -anl_f, 45, -anl_b, -45, anl_b]]*t
+            angs += [[45, anl_f, -45, -anl_f, 45, -anl_b, -45, anl_b]] * t
             # print(3, anl_b)
         for _ in range(4):  # stop
             anl_f = start
             anl_b = 45
-            angs += [[45, anl_f, -45, -anl_f, 45, -anl_b, -45, anl_b]]*t
+            angs += [[45, anl_f, -45, -anl_f, 45, -anl_b, -45, anl_b]] * t
             # print(4, anl_b)
 
         return angs, 'legs'
@@ -160,8 +158,8 @@ class ActionDict(dict):
         p = 30
         angs = []
         for i in range(21):
-            r = round(10*sin(i*0.314), 2)
-            p = round(10*sin(i*0.628) - 30, 2)
+            r = round(10 * sin(i * 0.314), 2)
+            p = round(10 * sin(i * 0.628) - 30, 2)
             if r == -10 or r == 10:
                 for _ in range(10):
                     angs.append([y, r, p])
@@ -175,8 +173,8 @@ class ActionDict(dict):
         amplitude = 60
         angs = []
         for i in range(21):
-            y = round(sin(i*0.314), 2)
-            y1 = amplitude*sin(i*0.314)
+            _ = round(sin(i * 0.314), 2)
+            y1 = amplitude * sin(i * 0.314)
             angs.append([y1, 0, 0])
         return angs, 'head'
 
@@ -186,9 +184,7 @@ class ActionDict(dict):
         yaw = 0
         roll = -25
         pitch = 15
-        return [
-            [yaw, roll, pitch]
-        ], 'head'
+        return [[yaw, roll, pitch]], 'head'
 
     # 右歪头 tilting_head_right
     @property
@@ -196,9 +192,7 @@ class ActionDict(dict):
         yaw = 0
         roll = 25
         pitch = 20
-        return [
-            [yaw, roll, pitch]
-        ], 'head'
+        return [[yaw, roll, pitch]], 'head'
 
     # 左右歪头 tilting_head left and right
     @property
@@ -206,17 +200,17 @@ class ActionDict(dict):
         yaw = 0
         roll = 22
         pitch = 20
-        return [[yaw, roll, pitch]]*20 \
-            + [[yaw, -roll, pitch]]*20, 'head'
+        return [[yaw, roll, pitch]] * 20 + [[yaw, -roll, pitch]] * 20, 'head'
 
     # 仰头吠叫 head_bark
     @property
     def head_bark(self):
-        return [[0, 0, -40],
-                [0, 0, -10],
-                [0, 0, -10],
-                [0, 0, -40],
-                ], 'head'
+        return [
+            [0, 0, -40],
+            [0, 0, -10],
+            [0, 0, -10],
+            [0, 0, -40],
+        ], 'head'
 
     # 摇尾巴 wag_tail
     @property
@@ -242,11 +236,7 @@ class ActionDict(dict):
         #             angs.append([0,0,y1])
         #     angs.append([0,0,y1])
         # return angs,'head'
-        return [
-            [0, 0, 20],
-            [0, 0, 20],
-            [0, 0, -10]
-        ], 'head'
+        return [[0, 0, 20], [0, 0, 20], [0, 0, -10]], 'head'
 
     # half_sit
     @property

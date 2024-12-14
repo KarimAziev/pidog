@@ -1,0 +1,5 @@
+git+https://github.com/KarimAziev/robot-hat.git@main#egg=robot_hat
+readchar
+numpy
+spidev
+platformdirs

@@ -1,14 +1,19 @@
-#!/usr/bin/env python3
 import time
-from robot_hat import I2C, fileDB
+from typing import List, TypeVar
 
-# from filedb import fileDB
+from robot_hat.filedb import FileDB
+from robot_hat.i2c import I2C
+import logging
 
 # Sensitivity
 # 2g: 1G = 16384
 # 4g: 1G = 8192
 # 8g: 1G = 4096
 # 16g:  1G = 2048
+
+Val = TypeVar('Val')
+
+logger = logging.getLogger(__name__)
 
 
 # region: General function
@@ -385,61 +390,60 @@ class Sh3001(I2C):
     # init
     def __init__(self, db="sh3001.config"):
         super().__init__(address=self.SH3001_ADDRESS)
-        if not self.is_avaliable():
-            raise IOError("SH3001 is not avaliable")
         self.sh3001_init()
-        self.db = fileDB(db=db)
-        self.acc_offset = self.get_from_config('calibrate_offset_list',
-                                               default_value=str(
-                                                   self.new_list(0)))
-        self.acc_max = self.get_from_config('calibrate_max_list',
-                                            default_value=str(
-                                                self.new_list(0)))
-        self.acc_min = self.get_from_config('calibrate_min_list',
-                                            default_value=str(
-                                                self.new_list(0)))
+        self.db = FileDB(db=db)
+        self.acc_offset = self.get_from_config(
+            'calibrate_offset_list', default_value=str(self.new_list(0))
+        )
+        self.acc_max = self.get_from_config(
+            'calibrate_max_list', default_value=str(self.new_list(0))
+        )
+        self.acc_min = self.get_from_config(
+            'calibrate_min_list', default_value=str(self.new_list(0))
+        )
 
         self.gyro_offset = [0, 0, 0]
         self.data_vector = [0, 0, 0]
 
-    def get_from_config(self, name, default_value=None):
+    def get_from_config(self, name, default_value: str):
         value = self.db.get(name, default_value)
         value = [float(i.strip()) for i in value.strip("[]").split(",")]
         return list(value)
 
-    def new_list(self, value):
-        return [value for i in range(3)]
+    def new_list(self, value: Val, count=3) -> List[Val]:
+        return [value for _ in range(count)]
 
-    def calibrate(self, aram, stopfunc=stop_func, waitfunc=default_wait):
+    def calibrate(self, aram, waitfunc=default_wait):
         '''
         calibration routine, sets cal
         '''
-        count = 0
         if aram == 'acc':
             while True:
                 waitfunc()
-                self.data_vector = self._sh3001_getimudata()[0]
+                imu_data = self._sh3001_getimudata()
+                if not imu_data:
+                    break
+                self.data_vector = imu_data[0]
 
                 self.acc_max = list(map(max, self.acc_max, self.data_vector))
                 self.acc_min = list(map(min, self.acc_min, self.data_vector))
                 self.acc_offset = list(
-                    map(lambda a, b: (a + b) / 2, self.acc_max, self.acc_min))
-                print('\033[K\rmax_list: %s   min_list: %s' %
-                      (self.acc_max, self.acc_min),
-                      end="",
-                      flush=True)
+                    map(lambda a, b: (a + b) / 2, self.acc_max, self.acc_min)
+                )
+                print(
+                    '\033[K\rmax_list: %s   min_list: %s'
+                    % (self.acc_max, self.acc_min),
+                    end="",
+                    flush=True,
+                )
         elif aram == 'gyro':
             sum_list = [0, 0, 0]
-            count = 0
             for i in range(503):
                 if i > 2:
-                    sum_list = [
-                        sum_list[i] + self.sh3001_getimudata('gyro', 'xyz')[i]
-                        for i in range(3)
-                    ]
-            self.gyro_offset = [
-                round(sum_list[i], 2) / 500.0 for i in range(3)
-            ]
+                    data = self.sh3001_getimudata('gyro', 'xyz')
+                    if data:
+                        sum_list = [sum_list[i] + data[i] for i in range(3)]
+            self.gyro_offset = [round(sum_list[i], 2) / 500.0 for i in range(3)]
             print("gyro_offset:", self.gyro_offset)
 
         else:
@@ -448,22 +452,28 @@ class Sh3001(I2C):
     def sh3001_init(self):
         regData = [0]
         i = 0
-        while ((regData[0] != 0x61) and (i < 3)):
+        while regData and (regData[0] != 0x61) and (i < 3):
             regData = self.mem_read(1, self.SH3001_CHIP_ID)
+
             i += 1
-            if (i == 3) and (regData[0] != 0x61):
+            if not regData or regData[0] != 0x61 and i == 3:
                 return False
 
         self.sh3001_module_reset()
-        self.sh3001_acc_config(self.SH3001_ODR_500HZ, self.SH3001_ACC_RANGE_2G,
-                               self.SH3001_ACC_ODRX025,
-                               self.SH3001_ACC_FILTER_EN)
-        self.sh3001_gyro_config(self.SH3001_ODR_500HZ,
-                                self.SH3001_GYRO_RANGE_2000,
-                                self.SH3001_GYRO_RANGE_2000,
-                                self.SH3001_GYRO_RANGE_2000,
-                                self.SH3001_GYRO_ODRX00,
-                                self.SH3001_GYRO_FILTER_EN)
+        self.sh3001_acc_config(
+            self.SH3001_ODR_500HZ,
+            self.SH3001_ACC_RANGE_2G,
+            self.SH3001_ACC_ODRX025,
+            self.SH3001_ACC_FILTER_EN,
+        )
+        self.sh3001_gyro_config(
+            self.SH3001_ODR_500HZ,
+            self.SH3001_GYRO_RANGE_2000,
+            self.SH3001_GYRO_RANGE_2000,
+            self.SH3001_GYRO_RANGE_2000,
+            self.SH3001_GYRO_ODRX00,
+            self.SH3001_GYRO_FILTER_EN,
+        )
         self.sh3001_temp_config(self.SH3001_TEMP_ODR_63, self.SH3001_TEMP_EN)
 
         return True
@@ -491,13 +501,13 @@ class Sh3001(I2C):
         self.mem_write(regData, self.SH3001_ADDRESS)
         time.sleep(0.01)
 
-    def sh3001_acc_config(self, accODR, accRange, accCutOffFreq,
-                          accFilterEnble):
+    def sh3001_acc_config(self, accODR, accRange, accCutOffFreq, accFilterEnble):
         # print('acc_config')
         # enable acc digital filter
         regData = self.mem_read(1, self.SH3001_ACC_CONF0)
-        regData[0] |= 0x01
-        self.mem_write(regData, self.SH3001_ACC_CONF0)
+        if regData:
+            regData[0] |= 0x01
+            self.mem_write(regData, self.SH3001_ACC_CONF0)
 
         # set acc ODR
         self.mem_write(accODR, self.SH3001_ACC_CONF1)
@@ -509,15 +519,24 @@ class Sh3001(I2C):
 
         # bypass acc low pass filter or not
         regData = self.mem_read(1, self.SH3001_ACC_CONF3)
-        regData[0] &= 0x17
-        regData[0] |= (accCutOffFreq | accFilterEnble)
-        self.mem_write(regData, self.SH3001_ACC_CONF3)
+        if regData:
+            regData[0] &= 0x17
+            regData[0] |= accCutOffFreq | accFilterEnble
+            self.mem_write(regData, self.SH3001_ACC_CONF3)
 
-    def sh3001_gyro_config(self, gyroODR, gyroRangeX, gyroRangeY, gyroRangeZ,
-                           gyroCutOffFreq, gyroFilterEnble):
+    def sh3001_gyro_config(
+        self,
+        gyroODR,
+        gyroRangeX,
+        gyroRangeY,
+        gyroRangeZ,
+        gyroCutOffFreq,
+        gyroFilterEnble,
+    ):
         regData = self.mem_read(1, self.SH3001_GYRO_CONF0)
-        regData[0] |= 0x01
-        self.mem_write(regData, self.SH3001_GYRO_CONF0)
+        if regData:
+            regData[0] |= 0x01
+            self.mem_write(regData, self.SH3001_GYRO_CONF0)
 
         # set gyro ODR
         self.mem_write(gyroODR, self.SH3001_GYRO_CONF1)
@@ -529,49 +548,46 @@ class Sh3001(I2C):
 
         # bypass acc low pass filter or not
         regData = self.mem_read(1, self.SH3001_GYRO_CONF2)
-        regData[0] &= 0xE3
-        regData[0] |= (gyroCutOffFreq | gyroFilterEnble)
-        self.mem_write(regData, self.SH3001_GYRO_CONF2)
+        if regData:
+            regData[0] &= 0xE3
+            regData[0] |= gyroCutOffFreq | gyroFilterEnble
+            self.mem_write(regData, self.SH3001_GYRO_CONF2)
 
     def sh3001_temp_config(self, tempODR, tempEnable):
         regData = self.mem_read(1, self.SH3001_TEMP_CONF0)
-        regData[0] &= 0x4F
-        regData[0] |= (tempODR | tempEnable)
-        self.mem_write(regData, self.SH3001_TEMP_CONF0)
-        regData = self.mem_read(1, self.SH3001_TEMP_CONF0)
+        if regData:
+            regData[0] &= 0x4F
+            regData[0] |= tempODR | tempEnable
+            self.mem_write(regData, self.SH3001_TEMP_CONF0)
+            regData = self.mem_read(1, self.SH3001_TEMP_CONF0)
 
-    # endregion: sh3001 internal function
-
-    # return accData,gyroData
     def _sh3001_getimudata(self):
         try:
-            gyroData = [0, 0, 0]
-            accData = [0, 0, 0]
-            # regData = [0 for i in range(12)]
+            gyroData = [0.0, 0.0, 0.0]
+            accData = [0.0, 0.0, 0.0]
             regData = self.mem_read(12, self.SH3001_ACC_XL)
+            if regData:
+                accData[0] = bytes_toint(regData[1], regData[0])
+                accData[1] = bytes_toint(regData[3], regData[2])
+                accData[2] = bytes_toint(regData[5], regData[4])
 
-            accData[0] = bytes_toint(regData[1], regData[0])
-            accData[1] = bytes_toint(regData[3], regData[2])
-            accData[2] = bytes_toint(regData[5], regData[4])
-            # accData = [(accData[i] - self.acc_cal[i]) for i in range(len(accData))]
+                gyroData[0] = bytes_toint(regData[7], regData[6])
+                gyroData[1] = bytes_toint(regData[9], regData[8])
+                gyroData[2] = bytes_toint(regData[11], regData[10])
 
-            gyroData[0] = bytes_toint(regData[7], regData[6])
-            gyroData[1] = bytes_toint(regData[9], regData[8])
-            gyroData[2] = bytes_toint(regData[11], regData[10])
-            # gyroData = [gyroData[i] - self.gyro_offset[i] for i in range(len(gyroData))]
-
-            return accData, gyroData
-        except Exception as e:
-            # print("_sh3001_getimudata error: ", e)
+                return accData, gyroData
+        except Exception:
+            logger.exception("Exception in _sh3001_getimudata")
             return False
 
     def sh3001_getimudata(self, aram, axis):
-        accData, gyroData = self._sh3001_getimudata()
-        accData = [(accData[i] - self.acc_offset[i])
-                   for i in range(len(accData))]
-        gyroData = [
-            gyroData[i] - self.gyro_offset[i] for i in range(len(gyroData))
-        ]
+        imu_data = self._sh3001_getimudata()
+        if not imu_data:
+            return
+
+        accData, gyroData = imu_data
+        accData = [(accData[i] - self.acc_offset[i]) for i in range(len(accData))]
+        gyroData = [gyroData[i] - self.gyro_offset[i] for i in range(len(gyroData))]
         # print()
 
         if aram == 'acc':
@@ -619,10 +635,12 @@ class Sh3001(I2C):
     def sh3001_gettempdata(self):
         tempref = [0, 0]
         regData = self.mem_read(2, self.SH3001_TEMP_CONF0)
-        tempref[0] = regData[0] & 0x0F << 8 | regData[1]
+        if regData:
+            tempref[0] = regData[0] & 0x0F << 8 | regData[1]
 
         regData = self.mem_read(2, self.SH3001_TEMP_ZL)
-        tempref[1] = regData[1] & 0x0F << 8 | regData[0]
+        if regData:
+            tempref[1] = regData[1] & 0x0F << 8 | regData[0]
 
         return (tempref[1] - tempref[0]) / 16.0 + 25.0
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import time
 from pidog import Pidog
-from preset_actions import *
+from preset_actions import bark, bark_action, pant, shake_head, push_up, howling, body_twisting, scratch, hand_shake, high_five
 import curses
 import curses_utils
 
@@ -390,13 +390,13 @@ def run_operation(key):
     global command, head_pitch_init, head_yrp
     if not my_dog.is_legs_done() or not my_dog.is_head_done():
         return
-    
+
     key_data = None
     operation = None
     # before = None
     # after = None
     if key not in KEYS.keys():
-        sleep(0.2)
+        time.sleep(0.2)
         return
     else:
         key_data = KEYS[key]
@@ -488,7 +488,7 @@ def set_simulated_key(stdscr, key, is_pressed=False):
         "│        │",
         "│        │",
         "│        │",
-        "└────────┘",     
+        "└────────┘",
     ]
     for i in range(len(key_bottom_layer)):
         if is_pressed:
@@ -543,7 +543,7 @@ def set_simulated_key(stdscr, key, is_pressed=False):
                     stdscr.addstr(tip2_ypos, tip2_xpos, tip2, curses_utils.CYAN)
                 else:
                     stdscr.addstr(tip1_ypos, tip1_xpos, tip1, curses_utils.WHITE |  curses.A_DIM)
-                    stdscr.addstr(tip2_ypos, tip2_xpos, tip2, curses_utils.WHITE |  curses.A_DIM)                   
+                    stdscr.addstr(tip2_ypos, tip2_xpos, tip2, curses_utils.WHITE |  curses.A_DIM)
 
 def display_tip(subpad):
     tip_upper = "Some keys are uppercase and lowercase for different functions."
@@ -560,15 +560,15 @@ def main(stdscr):
     stdscr.move(0, 0)
     stdscr.refresh()
 
-    # disable cursor 
+    # disable cursor
     curses.curs_set(0)
-    
-    # init color 
+
+    # init color
     curses.start_color()
     curses.use_default_colors()
     curses_utils.init_preset_color_pairs()
 
-    # init pad    
+    # init pad
     pad = curses.newpad(curses_utils.PAD_Y, curses_utils.PAD_X)
 
     # init subpad
@@ -592,7 +592,7 @@ def main(stdscr):
     stdscr.nodelay(True) # set non-blocking mode for getch()
     stdscr.timeout(10)
     # # TODO:
-    #     # what is the detection interval of getch() in non-blocking mode 
+    #     # what is the detection interval of getch() in non-blocking mode
 
     while True:
         curses.flushinp()
@@ -606,7 +606,7 @@ def main(stdscr):
             # stdscr.move(curses_utils.PAD_Y+1, 0)
             # stdscr.refresh()
             curses_utils.pad_refresh(pad)
-            sleep(0.5)
+            time.sleep(0.5)
         if key > 32 and key < 127:
             key = chr(key)
             if key in KEYS:
@@ -621,7 +621,7 @@ def main(stdscr):
                 # stdscr.refresh()
                 run_operation(key)
                 last_key = key
-                sleep(0.01)
+                time.sleep(0.01)
         else:
             if last_key != None and my_dog.is_all_done():
                 set_simulated_key(keys_pad, key=last_key, is_pressed=False)
@@ -639,4 +639,3 @@ if __name__ == '__main__':
         print(f"\033[31mERROR: {e}\033[m")
     finally:
         my_dog.close()
-
