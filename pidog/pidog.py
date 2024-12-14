@@ -7,12 +7,11 @@ from time import sleep, time
 from typing import List, Union
 
 import numpy as np
-from robot_hat import Battery, Music, Pin, Robot, Ultrasonic
+from robot_hat import Battery, Music, Pin, Robot, Ultrasonic, reset_mcu_sync
 from robot_hat.pin import Pin
 from robot_hat.robot import Robot
 from robot_hat.ultrasonic import Ultrasonic
 
-from .actions_dictionary import ActionDict
 from .dual_touch import DualTouch
 from .paths import DEFAULT_SOUNDS_DIR, config_file
 from .rgb_strip import RGBStrip
@@ -116,6 +115,9 @@ class Pidog:
         head_init_angles=None,
         tail_init_angle=None,
     ):
+
+        reset_mcu_sync()
+        from .actions_dictionary import ActionDict
 
         self.actions_dict = ActionDict()
         self.battery_service = Battery("A4")

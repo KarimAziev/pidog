@@ -1,7 +1,8 @@
 from os import getlogin, path
 
-from file_util import resolve_absolute_path
 from platformdirs import user_config_dir
+
+from .file_util import resolve_absolute_path
 
 USER = getlogin()
 USER_HOME = path.expanduser(f"~{USER}")

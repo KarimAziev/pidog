@@ -4,7 +4,10 @@ from time import sleep
 from robot_hat import reset_mcu_sync
 
 from .pidog import Pidog
+from .setup_env import setup_env
 from .version import __version__
+
+setup_env()
 
 
 def __main__():
