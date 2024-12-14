@@ -1,3 +1,4 @@
+import logging
 import multiprocessing as mp
 import os
 import threading
@@ -6,19 +7,17 @@ from time import sleep, time
 from typing import List, Union
 
 import numpy as np
-from robot_hat import Music, Pin, Robot, Ultrasonic, Battery
+from robot_hat import Battery, Music, Pin, Robot, Ultrasonic
 from robot_hat.pin import Pin
 from robot_hat.robot import Robot
 from robot_hat.ultrasonic import Ultrasonic
-from .paths import config_file, DEFAULT_SOUNDS_DIR
 
 from .actions_dictionary import ActionDict
 from .dual_touch import DualTouch
+from .paths import DEFAULT_SOUNDS_DIR, config_file
 from .rgb_strip import RGBStrip
 from .sh3001 import Sh3001
 from .sound_direction import SoundDirection
-import logging
-
 
 ''' servos order
                      4,
