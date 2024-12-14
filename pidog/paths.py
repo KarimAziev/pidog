@@ -2,8 +2,6 @@ from os import getlogin, path
 
 from platformdirs import user_config_dir
 
-from .file_util import resolve_absolute_path
-
 USER = getlogin()
 USER_HOME = path.expanduser(f"~{USER}")
 
@@ -15,4 +13,4 @@ CURRENT_DIR = path.dirname(path.realpath(__file__))
 PROJECT_DIR = path.dirname(CURRENT_DIR)
 
 config_file = path.join(PIDOG_CONFIG_DIR, "pidog.conf")
-DEFAULT_SOUNDS_DIR = resolve_absolute_path("sounds", PROJECT_DIR)
+DEFAULT_SOUNDS_DIR = path.join(PROJECT_DIR, "sounds/")
