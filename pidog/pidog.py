@@ -10,7 +10,6 @@ import numpy as np
 from robot_hat import Battery, Music, Pin, Robot, Ultrasonic, reset_mcu_sync
 from robot_hat.pin import Pin
 from robot_hat.robot import Robot
-from robot_hat.ultrasonic import Ultrasonic
 
 from .dual_touch import DualTouch
 from .paths import DEFAULT_SOUNDS_DIR, config_file
@@ -597,16 +596,16 @@ class Pidog:
             self.tail_action_buffer += target_angles
 
     # ultrasonic
-    async def _ultrasonic_thread(self, distance_addr, lock):
+    def _ultrasonic_thread(self, distance_addr, lock):
         while True:
             try:
                 with lock:
-                    val = round(float(await self.ultrasonic.read()), 2)
+                    val = round(float(self.ultrasonic.read()), 2)
                     distance_addr.value = val
                 sleep(0.01)
-            except Exception as e:
+            except Exception:
+                logger.error('ultrasonic_thread  except', exc_info=True)
                 sleep(0.1)
-                logger.error(f'\rultrasonic_thread  except: {e}')
                 break
 
     # sensory_process : ultrasonic
