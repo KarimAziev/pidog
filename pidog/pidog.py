@@ -1,10 +1,11 @@
+from pathlib import Path
 import logging
 import multiprocessing as mp
 import os
 import threading
 from math import acos, atan, atan2, cos, pi, sin, sqrt
 from time import sleep, time
-from typing import List, Union
+from typing import List, Union, Optional
 
 import numpy as np
 from robot_hat import Battery, Music, Pin, Robot, Ultrasonic, reset_mcu_sync
@@ -79,9 +80,6 @@ class Pidog:
     ).T
     SOUND_DIR = DEFAULT_SOUNDS_DIR
     # Servo Speed
-    # HEAD_DPS = 300
-    # LEGS_DPS = 350
-    # TAIL_DPS = 500
     HEAD_DPS = 300  # dps, degrees per second
     LEGS_DPS = 428
     TAIL_DPS = 500
@@ -656,6 +654,12 @@ class Pidog:
         except Exception as e:
             logger.error(f'\rstop_and_lie logger.error:{e}')
 
+    def _find_sound_file(self, name: str) -> Optional[str]:
+        for file in os.listdir(self.SOUND_DIR):
+            file_path = os.path.join(self.SOUND_DIR, file)
+            if os.path.isfile(file_path) and Path(file_path).stem == name:
+                return file_path
+
     def speak(self, name, volume=100):
         """
         speak, play audio
@@ -665,15 +669,12 @@ class Pidog:
         :param volume: volume, 0-100
         :type volume: int
         """
-        if os.path.isfile(name):
-            self.music.sound_play_threading(name, volume)
-        elif os.path.isfile(self.SOUND_DIR + name + '.mp3'):
-            self.music.sound_play_threading(self.SOUND_DIR + name + '.mp3', volume)
-        elif os.path.isfile(self.SOUND_DIR + name + '.wav'):
-            self.music.sound_play_threading(self.SOUND_DIR + name + '.wav', volume)
-        else:
+        sound_file = self._find_sound_file(name)
+        if sound_file is None:
             logger.warning(f'No sound found for {name}')
             return False
+        else:
+            self.music.sound_play_threading(sound_file, volume)
 
     def speak_block(self, name, volume=100):
         """
@@ -684,15 +685,12 @@ class Pidog:
         :param volume: volume, 0-100
         :type volume: int
         """
-        if os.path.isfile(name):
-            self.music.sound_play(name, volume)
-        elif os.path.isfile(self.SOUND_DIR + name + '.mp3'):
-            self.music.sound_play(self.SOUND_DIR + name + '.mp3', volume)
-        elif os.path.isfile(self.SOUND_DIR + name + '.wav'):
-            self.music.sound_play(self.SOUND_DIR + name + '.wav', volume)
-        else:
+        sound_file = self._find_sound_file(name)
+        if sound_file is None:
             logger.warning(f'No sound found for {name}')
             return False
+        else:
+            self.music.sound_play(sound_file, volume)
 
     # calibration
     def set_leg_offsets(self, cali_list, reset_list=None):
